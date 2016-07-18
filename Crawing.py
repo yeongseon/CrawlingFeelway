@@ -9,6 +9,7 @@ import urllib.request
 
 import logging
 import logging.handlers
+import time
 
 log_formatter = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s-%(message)s')
 
@@ -101,9 +102,11 @@ class Crawer(object):
         '''
         total_pages = int(self.get_total_pages(self.key, self.value))
 
+
         for i in range(1, total_pages+1):
             url = self.get_url(self.key, self.value) + '&goods_page={}'.format(str(i))
             self.crawl_page(url)
+            time.sleep(30)
         return
 
     def crawl_url(self, url):
@@ -130,9 +133,9 @@ class Crawer(object):
             self.logger.debug('goods count[' + str(self.count) + ']')
 
             json_data = self.make_json(url)
-            self.post_json(self.post_url, json_data)
-
-            self.count += 1
+            if len(json_data) != 0 :
+                self.post_json(self.post_url, json_data)
+                self.count += 1
 
     def get_goods_url_list(self, url):
         '''
@@ -177,10 +180,23 @@ class Crawer(object):
         page = urlopen(url).read()
         soup = BeautifulSoup(page, 'lxml', from_encoding='utf-8')
 
-        temp_str = soup.findAll('td', attrs={'class': 'mail'})[0].text
-        # om2653465472 : 《럭스보이》16SS★포켓 폴로카라넥 MJP022C 00047 117
+        try:
+            temp_str = soup.findAll('td', attrs={'class': 'mail'})[0].text
+            # om2653465472 : 《럭스보이》16SS★포켓 폴로카라넥 MJP022C 00047 117
+        except IndexError:
+            data = {}
+            data['soldout_yn'] = 'Y'
+            # self.logger.debug('product_number[' + product_number + ']')
+            self.logger.debug('soldout_yn[Y]')
+            json_data = {}
+            # json_data[product_number] = data
+            return json_data
+
         # print(temp_str)
-        product_number = temp_str.split()[0]
+
+        split_idx = temp_str.find(':')
+        product_number = temp_str[:split_idx ].lstrip().rstrip()
+        product_name = temp_str[split_idx:].lstrip().rstrip()
 
         tds = soup.findAll("td", attrs={'align':'center'})
         for td in tds:
@@ -211,7 +227,7 @@ class Crawer(object):
             json_data = {}
             json_data[product_number] = data
             return json_data
-        product_name = temp_str.split('-')[-1].lstrip().rstrip()
+        # product_name = temp_str.split('-')[-1].lstrip().rstrip()
 
         for form in soup.findAll("input", attrs={'type': 'hidden'}):
             if form['name'] == 'brand_name':
@@ -325,4 +341,4 @@ class Crawer(object):
         header = {'content-type': 'application/json'}
         req = urllib.request.Request(post_url, data=params, headers=header)
         response = urllib.request.urlopen(req)
-        self.logger.debug('response[' + response.read().decode('utf-8') + ']')
+        # self.logger.debug('response[' + response.read().decode('utf-8') + ']')
