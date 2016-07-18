@@ -229,11 +229,12 @@ class Crawer(object):
             return json_data
         # product_name = temp_str.split('-')[-1].lstrip().rstrip()
 
+        global brand
+        global seller_id
+
         for form in soup.findAll("input", attrs={'type': 'hidden'}):
             if form['name'] == 'brand_name':
                 brand = form['value']
-            #elif form['name'] == 'goods_info':
-            #    product_name = form['value'].split('-')[-1].lstrip().rstrip()
             elif form['name'] == 'seller_id':
                 seller_id = form['value']
 
@@ -242,10 +243,27 @@ class Crawer(object):
         self.logger.debug('product_name[' + product_name + ']')
         self.logger.debug('seller_id[' + seller_id + ']')
 
-        temp_str = soup.findAll('td', attrs={'class':'link2'})[0].findAll('a')[-1].text
-        # Thom Browne-남성의류>티셔츠/민소매
+        categorys = ['여성슈즈', '남성슈즈', '가방/핸드백', '지갑/벨트', '악세서리',
+                     '여성의류', '남성의류', '화장품/향수', '선글래스/안경', '시계', '패션잡화',
+                     'KIDS', '기타']
+
+        index = 0
+        found = 0
+        for link2 in soup.findAll('td', attrs={'class': 'link2'}):
+            for category in categorys:
+                if category in link2.text:
+                    found = 1
+                    # print(index, link2.text)
+                    break;
+            if found:
+                break;
+            index += 1
+
+        # print(index)
+        temp_str = soup.findAll('td', attrs={'class':'link2'})[index].findAll('a')[-1].text
         # print(temp_str)
         category = temp_str.split('-')[-1]
+        print(category)
         self.logger.debug('category[' + category + ']')
 
         index = 0
