@@ -32,7 +32,7 @@ class Crawer(object):
         elif log_level == 'info':
             self.logger.setLevel(logging.INFO)
 
-        filename = 'server.log'
+        filename = 'crawling-' + str(time.strftime("%Y-%m-%d"))+ '.log'
         streamHandler = logging.FileHandler(filename)
         streamHandler.setFormatter(log_formatter)
 
@@ -192,11 +192,11 @@ class Crawer(object):
             # json_data[product_number] = data
             return json_data
 
-        # print(temp_str)
+        #print(temp_str)
 
         split_idx = temp_str.find(':')
         product_number = temp_str[:split_idx ].lstrip().rstrip()
-        product_name = temp_str[split_idx:].lstrip().rstrip()
+        product_name = temp_str[split_idx+1:].lstrip().rstrip()
 
         tds = soup.findAll("td", attrs={'align':'center'})
         for td in tds:
@@ -218,7 +218,7 @@ class Crawer(object):
                 return json_data
 
         try:
-            temp_str = soup.findAll('tr', attrs={'bgcolor':'#E3E1DA'})[0].findAll('td')[-1].text
+            temp_str = soup.findAll('tr', attrs={'bgcolor':'#E3E1DA'})[0].findAll('td')[-1].findAll('b')[0].text
         except IndexError:
             data = {}
             data['soldout_yn'] = 'Y'
@@ -229,19 +229,15 @@ class Crawer(object):
             return json_data
         # product_name = temp_str.split('-')[-1].lstrip().rstrip()
 
-        global brand
-        global seller_id
+        # print(temp_str)
+        brand = temp_str
 
-        for form in soup.findAll("input", attrs={'type': 'hidden'}):
-            if form['name'] == 'brand_name':
-                brand = form['value']
-            elif form['name'] == 'seller_id':
-                seller_id = form['value']
-
-        self.logger.debug('product_number[' + product_number + ']')
-        self.logger.debug('brand[' + brand + ']')
-        self.logger.debug('product_name[' + product_name + ']')
-        self.logger.debug('seller_id[' + seller_id + ']')
+        #for form in soup.findAll("input", attrs={'type': 'hidden'}):
+            # print(form['name'])
+            # if form['name'] == 'brand_name':
+            #    brand = form['value']
+            # elif form['name'] == 'seller_id':
+            #    seller_id = form['value']
 
         categorys = ['여성슈즈', '남성슈즈', '가방/핸드백', '지갑/벨트', '악세서리',
                      '여성의류', '남성의류', '화장품/향수', '선글래스/안경', '시계', '패션잡화',
@@ -263,12 +259,25 @@ class Crawer(object):
         temp_str = soup.findAll('td', attrs={'class':'link2'})[index].findAll('a')[-1].text
         # print(temp_str)
         category = temp_str.split('-')[-1]
-        print(category)
-        self.logger.debug('category[' + category + ']')
+        # print(category)
+
+
+        index = 0
+        index_seller = 0
+        for temp in soup.findAll('tr', attrs={'bgcolor': 'E3E1DA'}):
+            if '판매자' in temp.text:
+                index_seller = index
+
+        temp_str = soup.findAll('tr', attrs={'bgcolor': 'E3E1DA'})[index_seller].findAll('a')[-1]['href']
+        # print(temp_str)
+
+        seller_id = temp_str.split('/')[-1].lstrip().rstrip()
+        # print(seller_id)
 
         index = 0
         index_price = 2
         index_size = 3
+
         for temp in soup.findAll('tr', attrs={'bgcolor': 'E3E1DA'}):
             if '가격/배송' in temp.text:
                 index_price = index
@@ -276,6 +285,11 @@ class Crawer(object):
                 index_size = index
             index += 1
 
+        self.logger.debug('product_number[' + product_number + ']')
+        self.logger.debug('brand[' + brand + ']')
+        self.logger.debug('product_name[' + product_name + ']')
+        self.logger.debug('seller_id[' + seller_id + ']')
+        self.logger.debug('category[' + category + ']')
         self.logger.debug('index_price[' +  str(index_price) + ']')
         self.logger.debug('index_size[' +  str(index_size) + ']')
 
